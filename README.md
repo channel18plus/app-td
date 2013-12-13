@@ -1,9 +1,9 @@
-Hacker News mobile app
+Channel 18 plus
 ==
 
-#### Web: http://hn.premii.com
-#### iOS: https://itunes.apple.com/us/app/hacker-news-yc/id713733435
-#### Android: https://play.google.com/store/apps/details?id=com.premii.hn
+#### Web: http://c18p.us
+#### iOS: 
+#### Android: 
 
 ### lib.js contains
 
@@ -14,28 +14,4 @@ Hacker News mobile app
 * localstorage wrapper
 
 ### Data source (index.htm).
-
-<code>
-"url" : {
-    "stories" : "http://ng.premii.com:8080",
-    "readability": "http://localhost/a/read/sample.txt"
-}
-</code>
-
-
-Update these paths to point to your HN stories server and readability server. See sample.txt for readability output.
-
-### Unofficial Hacker News API for HN data
-- https://github.com/cheeaun/node-hnapi/
-
-### Others
-* Icon font - http://icomoon.io
-* Normalize.css - https://github.com/necolas/normalize.css/
-
-#### Build process (Not included)
-* Using nodejs to generate production ready code
-* Removes all console.log messages
-* Combine and minify JS using uglifyjs
-* Combine CSS into one file
-* Phonegap ready code
 

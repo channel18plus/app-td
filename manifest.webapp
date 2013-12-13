@@ -1,6 +1,6 @@
 {
-    "name": "My App Name",
-    "description": "description of the app",
+    "name": "Tìm hiểu TD",
+    "description": "Tìm hiểu TD",
     "version": "1",
     "type": "web",
     "csp": "allow 'self'; script-src 'self' ; style-src 'self';",
@@ -19,10 +19,10 @@
         "512": "/img/icons/webapp/icon512.png"
     },
     "developer": {
-        "name": "Daniele Veneroni",
-        "url": "http://venerons.github.io/"
+        "name": "Kênh 18+",
+        "url": "http://c18p.us/"
     },
-    "default_locale": "en",
+    "default_locale": "vn",
     "locales": {
       "it": {
         "description": "Descrizione dell'applicazione"
