@@ -22,51 +22,42 @@
 	//document.body.addEventListener('DOMNodeInserted', updateNodeCount, false);
 }(window.$hn));
 (function($hn) {
-	var primaryServer = $hn.url.stories,
+	var localData;
+	var resetCache = function() {
+		console.log("resetCache");
+		localData = {
+			articles: {}
+		};
+	};
+	resetCache();
+
+	var primaryServer = $hn.url.rootPath,
 			backupServer = $hn.url.storiesBackup;
 	var server = primaryServer;
-	var URL = {
-		'list': '/api/list_content.jsp',
-		'item': '/api/detail_content.jsp?id={id}',
-		'detail': '/api/detail_content.jsp',
-		'AskHn': 'https://api.thriftdb.com/api.hnsearch.com/items/_search?limit=30&sortby=create_ts+desc&weights[username]=0.1&weights[text]=1&weights[type]=0&weights[domain]=2&weights[title]=1.2&weights[url]=1&boosts[fields][points]=0.07&boosts[functions][pow(2,div(div(ms(create_ts,NOW),3600000),72))]=200&q="Ask+hn"&filter[fields][type]=submission&facet[queries][]=username:Ask&facet[queries][]=username:hn',
-		'ShowHn': 'https://api.thriftdb.com/api.hnsearch.com/items/_search?limit=30&sortby=create_ts+desc&weights[username]=0.1&weights[text]=1&weights[type]=0&weights[domain]=2&weights[title]=1.2&weights[url]=1&boosts[fields][points]=0.07&boosts[functions][pow(2,div(div(ms(create_ts,NOW),3600000),72))]=200&q="show+hn"&filter[fields][type]=submission&facet[queries][]=username:show&facet[queries][]=username:hn',
-		'top10ByDate': 'https://api.thriftdb.com/api.hnsearch.com/items/_search?filter[fields][type][]=submission&sortby=points+desc&filter[fields][create_ts][]=[{startDate}+TO+{endDate}]&limit=10'
-	};
-	URL.detail = $hn.url.detail;
-	URL.list = $hn.url.list;
 
 	var getUrl = function(type) {
-		if (type === 'list' || type === 'item') {
-			return server + URL[type];
-		}
-		else if (type === 'AskHn' || type === 'ShowHn') {
-			return URL[type];
-		}
-		else if (type === 'todayTop10' || type === 'yesterdayTop10' || type === 'weekTop10') {
-			var startDate = new Date(),
-					endDate;
-
-			startDate.setHours(0);
-			startDate.setMinutes(0);
-			startDate.setSeconds(0);
-
-			endDate = new Date(startDate);
-			if (type === 'todayTop10') {
-				endDate.setHours(24);
-			}
-			else if (type === 'yesterdayTop10') {
-				startDate.setHours(-24);
-			}
-			else if (type === 'weekTop10') {
-				startDate.setDate(startDate.getDate() - 7);
-			}
-			return $hn.t(URL.top10ByDate, {
-				'startDate': startDate.toISOString(),
-				'endDate': endDate.toISOString()
+		var configPath = $hn.url.configPath;
+		if (typeof $hn.url.config === 'undefined') {
+			var onSuccess = function(data) {
+				$hn.url.config = data;
+			};
+			$hn.ajax({
+				url: server + configPath,
+				dataType: 'json',
+				success: onSuccess
 			});
+			console.log('Get url of type: ' + type + " result: " + server + configPath + " current $hn.url.config");
+			console.log($hn.url.config);
+			return server + configPath;
+		}
+		else {
+			console.log('Get url of type: ' + type);
+			console.log(" result: " + server + $hn.url.config[type].path + " current $hn.url.config");
+			console.log($hn.url.config);
+			return server + $hn.url.config[type].path;
 		}
 	};
+
 	var lastServerChangeTime;
 	var changeServer = function(url) {
 		console.log('change server', lastServerChangeTime, server);
@@ -79,14 +70,6 @@
 		return false;
 	};
 
-	var localData;
-	var resetCache = function() {
-		localData = {
-			articles: {}
-		};
-	};
-
-	resetCache();
 
 	var updateLocalData = function() {
 		$.each(localData.list, function(index, item) {
@@ -196,7 +179,6 @@
 	var getLocalData = function() {
 		return localData;
 	};
-
 	var updateList = function(callback) {
 		callback = callback || function() {
 		};
@@ -210,11 +192,11 @@
 		},
 				t0Ajax = +new Date();
 		$hn.ajax({
-			url: getUrl('list'),
+			url: getUrl('home'),
+			dataType: 'json',
 			success: onSuccess,
 			error: function(xhr, status)
 			{
-				console.log(typeof status, status, xhr);
 				if ("ajaxError|abort".indexOf(status) > -1 && changeServer()) {
 					updateList(callback);
 				}
@@ -225,6 +207,7 @@
 	var updateArticleContent = function(id, callback) {
 		callback = callback || function() {
 		};
+		console.log('call success' + localData.config);
 		if (!localData.articles[id] && callbackLoop++ < 3) {
 //            alert('updateArticleContent(): Something went wrong! Reload??? ' + id);
 			window.setTimeout(function() {
@@ -233,11 +216,9 @@
 		}
 
 		var fallbackContent = function() {
-			console.log('fallbackContent ' + localData.articles[id]);
 			return $hn.t('<p>Oops... Something went terribly wrong... </p><p>Follow this link <a href="{url}">{url}</a> to view the article</p><br><br>', {url: localData.articles[id].url});
 		},
 				onSuccess = function(data) {
-					console.log('onSuccess ' + data);
 					$hn.perf.update(id, 'article-fetch', +new Date() - t0Ajax);
 					var a = $('<div></div>').html(data.content || fallbackContent());
 					$('*', a).each(function(index, node) {
@@ -249,15 +230,14 @@
 					callback.apply(callback, [localData.articles[id]]);
 				},
 				onError = function(data) {
-					console.log('onError ' + data);
 					localData.articles[id].articlecontent = fallbackContent();
 					callback.apply(callback, [localData.articles[id]]);
 				},
 				t0Ajax = +new Date();
 
 		$hn.ajax({
-			url: $hn.t(URL.detail, {id: encodeURIComponent(localData.articles[id].id), format: 'jsonp'}),
-			dataType: 'jsonp',
+			url: server + $hn.url.config[localData.articles[id].type].contentPath + id,
+			dataType: 'json',
 			success: onSuccess,
 			error: onError
 		});
@@ -318,7 +298,7 @@
 			error: function(xhr, status) {
 				console.log('ajax primary server failed, try backup server: ', status, xhr);
 				if ('error|abort'.indexOf(status) > -1 && changeServer()) {
-					updateArticleComments(id, callback);
+//					updateArticleComments(id, callback);
 				}
 			}
 		});
@@ -335,6 +315,8 @@
 
 		updateList(callback);
 	};
+
+
 
 	var getArticleMeta = function(id, callback) {
 		callback = callback || function() {
@@ -357,7 +339,7 @@
 				t0Ajax = +new Date();
 
 		$hn.ajax({
-			url: $hn.t(getUrl('item'), {id: id}),
+			url: getUrl('item') + id + '.json',
 			dataType: 'jsonp',
 			success: onSuccess,
 			error: function(xhr, status) {
@@ -394,15 +376,16 @@
 			return callback.apply(callback, [article]);
 		}
 
-		updateArticleComments(id, callback);
+//		updateArticleComments(id, callback);
 	};
 
-	var reformatData = function(data) {
+	var reformatData = function(type,data) {
 		var t0Reformat = +new Date(),
 				tempData = [];
-
-		$.each(data.results, function(index, item) {
-			item = item.item;
+		if (typeof data === undefined)
+			return null;
+		$.each(data, function(index, item) {
+			console.log(item);
 			var tempItem = {
 				id: item.id,
 				comments_count: item.num_comments,
@@ -411,7 +394,7 @@
 				time_ago: $hn.timeAgo(+new Date(item.create_ts)),
 				title: item.title,
 				content: item.text || '',
-				type: item.type,
+				type: type,
 				url: item.url,
 				user: item.username,
 				visitedArticle: '',
@@ -429,24 +412,24 @@
 			tempData.push(tempItem);
 		});
 
-		$hn.perf.update('listAskHn', 'reformat', +new Date() - t0Reformat);
+		$hn.perf.update('list'+type, 'reformat', +new Date() - t0Reformat);
 		return tempData;
 	};
 
 	var updateArticlesByType = function(type, callback) {
-		console.log(type);
 		callback = callback || function() {
 		};
 		var onSuccess = function(data) {
 			$hn.perf.update('list' + type, 'fetch', +new Date() - t0Ajax);
-			localData['list' + type] = reformatData(data);
-			callback.apply(callback, [localData['list' + type]]);
+			console.log(data);
+			localData['list' + type] = reformatData(type,data);
+			callback.apply(callback, [data]);
 		},
 				t0Ajax = +new Date();
 
 		$hn.ajax({
 			url: getUrl(type),
-			dataType: 'jsonp',
+			dataType: 'json',
 			success: onSuccess
 		});
 	};
@@ -455,15 +438,37 @@
 		reload = reload || false;
 		callback = callback || function() {
 		};
-
+		//lay path truyen sang updateArticlesByType
 		if (!reload && localData['list' + type]) {
 			return callback.apply(callback, [localData['list' + type]]);
 		}
 
 		updateArticlesByType(type, callback);
 	};
+// LAY DANH SACH CATEGORY
+	var getCategories = function(callback) {
+		callback = callback || function() {
+		};
+		if (typeof $hn.url.config === 'undefined') {
+			var onSuccess = function(data) {
+				$hn.url.config = data;
+				callback.apply(callback, [$hn.url.config]);
+				console.log('Call get categories success');
+				console.log($hn.url.config);
+			};
+			$hn.ajax({
+				url: server + $hn.url.configPath,
+				dataType: 'json',
+				success: onSuccess
+			});
+		} else {
+			callback.apply(callback, [$hn.url.config]);
+		}
+	};
 
+// KET THUC LAY CATEGORY
 	$hn.data = {
+		getCategories: getCategories,
 		getArticles: getArticles,
 		getArticleMeta: getArticleMeta,
 		getArticleContent: getArticleContent,

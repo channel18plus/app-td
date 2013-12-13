@@ -90,10 +90,8 @@
 			html += '<li><a href="#" class="' + index + '">' + item.text + '</a></li>';
 		});
 		menuPage[0].innerHTML = html;
-
 	};
 	$hn.data.getCategories(loadMenu);
-
 }(window.$hn));
 
 (function($hn) {
@@ -556,5 +554,3 @@
 	'use strict';
 	$.cookie('v', $hn.v.app, {expires: 365 * 5});
 }(window.$hn));
-
-
