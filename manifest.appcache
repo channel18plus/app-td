@@ -1,0 +1,18 @@
+CACHE MANIFEST
+# 29-04-2013:v1
+
+# Explicitly cached entries
+index.html
+LICENSE.md
+
+# page that will be displayed if the user is offline
+FALLBACK:
+
+# All other resources require the user to be online
+NETWORK:
+*
+
+# Additional resources to cache
+CACHE:
+manifest.webapp
+js/lib/jquery-2.0.0.js
